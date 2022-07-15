@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">ShootingGame</string>
+    <string name="str_rotate">Rotate</string>
+    <string name="str_fire">Fire</string>
+</resources>
