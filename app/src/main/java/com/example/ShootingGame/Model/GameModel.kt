@@ -12,7 +12,6 @@ class GameModel(displayX: Float, displayY: Float) {
     private val enemyModels = arrayOf(Enemy(), Enemy(), Enemy(), Enemy(), Enemy())
     private val bulletModels = arrayOf(Bullet(), Bullet())
 
-    private val bulletInfo = arrayOf(0F, 0F, 0F)
     private val slope = cannonModel.getBaseY()/cannonModel.getBaseX()
     private var life = 2
 
@@ -21,22 +20,106 @@ class GameModel(displayX: Float, displayY: Float) {
     private val enemyWidth = 0.1F * xScale
     private val enemyHeight = 0.1F * yScale
 
-    fun bulletReady(idx: Int){
-        bulletModels[idx].toggleAvailable()
+    fun dataUpdate(){
+        //bullet update
+        for(i in 0..1){
+            if(!bulletModels[i].isAvailable())
+                bulletModels[i].updateXY()
+        }
+        //enemy update
+        for(i in 0..4) {
+            if(!enemyModels[i].isAvailable())
+                enemyModels[i].setY(enemyModels[i].getY() + enemyModels[i].getVelocity())
+        }
+
+        //collision or not
+        for(i in 0..1) {
+            if (!bulletModels[i].isAvailable()) {
+                for (j in 0..4) {
+                    if (!enemyModels[j].isAvailable()) {
+                        if(collisionCheck(i, j)){
+                            bulletModels[i].settingReset()
+                            enemyModels[j].settingReset()
+                            break
+                        }
+                    }
+                }
+            }
+        }
     }
 
-    fun bulletSelect() : Array<Float>{
-        bulletInfo[1] = cannonModel.getMuzzleX() - 0.04F * xScale
-        bulletInfo[2] = cannonModel.getMuzzleY() - 0.04F * yScale
+    fun cannonRotate(progress: Int) : Float{
+        return cannonModel.rotate(progress)
+    }
 
-        bulletInfo[0] =
-            if (bulletModels[0].isAvailable()) 0F
-            else if (bulletModels[1].isAvailable()) 1F
-            else -1F
+    fun bulletSetTarget(idx: Int){
+        val sx = cannonModel.getMuzzleX() - bulletWidth/2
+        val sy = cannonModel.getMuzzleY() - bulletHeight/2
+        val ex: Float
+        val ey: Float
+        val cur = (cannonModel.getBaseY() - cannonModel.getMuzzleY()) / (cannonModel.getBaseX() - cannonModel.getMuzzleX())
+        if(cur > 0){
+            if(cur < slope) { //기울기가 낮 (0, 양수)
+                ex = 0F
+                ey =cannonModel.getBaseY() - cur * cannonModel.getBaseX() - bulletHeight/2
+            }
+            else { // (양수, 0)
+                ex = cannonModel.getBaseX() - (1 / cur) * cannonModel.getBaseY() - bulletWidth/2
+                ey = 0F
+            }
+        }
+        else if(cur == 0F){
+            if(cannonModel.getDegree() == 90F) {
+                ex = 0.92F * xScale
+                ey = cannonModel.getBaseY() + cur * (xScale - cannonModel.getBaseX()) - bulletHeight / 2
+            }
+            else {
+                ex = 0F
+                ey = cannonModel.getBaseY() - cur * cannonModel.getBaseX() - bulletHeight / 2
+            }
+        }
+        else {
+            if (cur < -slope) { //(양수, 0)
+                ex = cannonModel.getBaseX() + (-1 / cur) * cannonModel.getBaseY() - bulletWidth / 2
+                ey = 0F
+            }
+            else { //(경계, 경계)
+                ex = 0.92F * xScale
+                ey = cannonModel.getBaseY() + cur * (xScale - cannonModel.getBaseX()) - bulletHeight / 2
+            }
+        }
+        bulletModels[idx].setMoveData(sx, sy, ex, ey)
+    }
 
-        if(bulletInfo[0] != -1F)
-            bulletReady(bulletInfo[0].toInt())
-        return bulletInfo
+    fun bulletInfoX(idx: Int) : Float{
+        return bulletModels[idx].getX()
+    }
+
+    fun bulletInfoY(idx: Int) : Float{
+        return bulletModels[idx].getY()
+    }
+
+    fun bulletInfoCollision(idx: Int): Int{
+        return bulletModels[idx].collisionCheck()
+    }
+
+    fun bulletSelect() : Int{
+        val res =
+            if (bulletModels[0].isAvailable()) 0
+            else if (bulletModels[1].isAvailable()) 1
+            else -1
+
+        if(res != -1)
+            bulletModels[res].activate()
+        return res
+    }
+
+    fun isBulletLimitOut(idx: Int) : Boolean{
+        if(bulletModels[idx].overLimit()){
+            bulletModels[idx].settingReset()
+            return true
+        }
+        return false
     }
 
     fun setEnemy() : Int{
@@ -51,71 +134,40 @@ class GameModel(displayX: Float, displayY: Float) {
 
         //random 위치와 속도 설정
         if(idx != -1) {
-            enemyModels[idx].toggleAvailable()
+            enemyModels[idx].activate()
             enemyModels[idx].randomSetting(
                 Math.random().toFloat() * (xScale - enemyWidth),
-                (2000L..4000L).random()
+                Math.random().toFloat() + 0.5F
             )
         }
         return idx
-    }
-
-    fun updateEnemy(idx: Int, pos: Float){
-        enemyModels[idx].setY(pos)
     }
 
     fun enemyInfoX(idx:Int): Float{
         return enemyModels[idx].getX()
     }
 
-    fun enemyInfoD(idx:Int): Long{
-        return enemyModels[idx].getDuration()
+    fun enemyInfoY(idx:Int): Float{
+        return enemyModels[idx].getY()
     }
 
-    fun enemyReady(idx: Int){
-        enemyModels[idx].toggleAvailable()
-    }
-
-    fun cannonRotate(progress: Int) : Float{
-        return cannonModel.rotate(progress)
-    }
-
-    fun cannonShot() : Array<Float>{
-        val cur = (cannonModel.getBaseY() - cannonModel.getMuzzleY()) / (cannonModel.getBaseX() - cannonModel.getMuzzleX())
-        return if(cur > 0){
-                if(cur < slope) { //기울기가 낮 (0, 양수)
-                    arrayOf(0F, cannonModel.getBaseY() - cur * cannonModel.getBaseX() - bulletHeight/2)
-                }
-                else // (양수, 0)
-                    arrayOf(cannonModel.getBaseX() - (1 / cur) * cannonModel.getBaseY() - bulletWidth/2, 0F)
-            }
-            else if(cur == 0F){
-                if(cannonModel.getDegree() == 90F)
-                    arrayOf(0.92F * xScale, cannonModel.getBaseY() + cur * (xScale - cannonModel.getBaseX()) - bulletHeight/2)
-                else
-                    arrayOf(0F, cannonModel.getBaseY() - cur * cannonModel.getBaseX() - bulletHeight/2)
-            }
-            else {
-                if (cur < -slope) //(양수, 0)
-                    arrayOf(cannonModel.getBaseX() + (-1 / cur) * cannonModel.getBaseY() - bulletWidth/2, 0F)
-                else //(경계, 경계)
-                    arrayOf(0.92F * xScale, cannonModel.getBaseY() + cur * (xScale - cannonModel.getBaseX()) - bulletHeight/2)
-            }
-    }
-
-    fun collisionCheck(bulletX:Float, bulletY:Float): Int{
-        var xDif: Float
-        var yDif: Float
-        for(i in 0..4){
-            if(!enemyModels[i].isAvailable()){
-                xDif = abs(bulletX - enemyModels[i].getX())
-                yDif = abs(bulletY - enemyModels[i].getY())
-                //계산
-                if(xDif < enemyWidth && yDif < enemyHeight)
-                    return i
-            }
+    fun isEnemyLimitOut(idx: Int) : Boolean{
+        if(enemyModels[idx].getY() > yScale){
+            enemyModels[idx].settingReset()
+            return true
         }
-        return -1
+        return false
+    }
+
+    private fun collisionCheck(bIdx : Int, eIdx : Int): Boolean{
+        val xDif: Float = abs(bulletModels[bIdx].getX() - enemyModels[eIdx].getX())
+        val yDif: Float = abs(bulletModels[bIdx].getY() - enemyModels[eIdx].getY())
+        //계산
+        if(xDif < enemyWidth && yDif < enemyHeight){
+            bulletModels[bIdx].setCollision(eIdx)
+            return true
+        }
+        return false
     }
 
     fun isGameEnd():Boolean{

@@ -2,23 +2,30 @@ package com.example.ShootingGame.Model
 
 class Enemy {
     private var available = true
-    private var duration:Long = 0
+    private var velocity:Float = 0F
     private var x:Float = 0F
     private var y:Float = 0F
 
-    fun randomSetting(x:Float, d:Long){
+    fun randomSetting(x:Float, v:Float){
         this.x = x
-        duration = d
+        velocity = v
+    }
+
+    fun settingReset(){
+        available = true
+        this.x = 0F
+        this.y = 0F
+        this.velocity = 0F
     }
 
     fun isAvailable() : Boolean{
         return available
     }
-    fun toggleAvailable(){
-        available = !available
+    fun activate(){
+        available = false
     }
-    fun getDuration():Long{
-        return duration
+    fun getVelocity():Float{
+        return velocity
     }
 
     fun getX():Float{

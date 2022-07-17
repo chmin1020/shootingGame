@@ -14,9 +14,11 @@ import kotlin.concurrent.timer
 
 
 class MainActivity : AppCompatActivity() {
-    lateinit var enemyTimer: Timer
-    var realWidth:Float = 0F
-    var realHeight:Float = 0F
+    lateinit var updateTimer: Timer
+
+    //실행 게임 화면 크기 저장을 위함
+    private var realWidth:Float = 0F
+    private var realHeight:Float = 0F
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,7 +29,6 @@ class MainActivity : AppCompatActivity() {
 
         //model - controller 연결됨
         val gameModel = GameModel(realWidth, realHeight)
-        var selectedBullet: Array<Float>
 
         //view - controller 연결됨
         val cannon = findViewById<ImageView>(R.id.cannon)
@@ -48,68 +49,85 @@ class MainActivity : AppCompatActivity() {
         })
         //탄환 발사
         fireButton.setOnClickListener{
-            selectedBullet = gameModel.bulletSelect()
-            val idx = selectedBullet[0].toInt()
-            if(idx != -1) {
-                bullets[idx].x = selectedBullet[1]
-                bullets[idx].y = selectedBullet[2]
+            val idx = gameModel.bulletSelect() //사용할 탄환 색인을 모델에서 가져옴
+            if(idx != -1) { //-1인 경우 현재 사용 가능한 탄환 x
+                gameModel.bulletSetTarget(idx) //탄환의 시작과 종료 위치 설정
+                bullets[idx].x = gameModel.bulletInfoX(idx)
+                bullets[idx].y = gameModel.bulletInfoY(idx)
                 bullets[idx].visibility = View.VISIBLE
-
-                val arr = gameModel.cannonShot()
-
-                //데이터 계산을 view animation 표현
-                bullets[idx].animate().translationX(arr[0]).translationY(arr[1])
-                    .setDuration(800L)
-                    .setListener(object : AnimatorListenerAdapter(){
-                        override fun onAnimationEnd(animation: Animator?) {
-                            super.onAnimationEnd(animation)
-                            bullets[idx].x = 0F
-                            bullets[idx].y = 0F
-                            bullets[idx].visibility = View.GONE
-                            gameModel.bulletReady(idx)
-                         }
-                    })
-                    .setUpdateListener {
-                        val check = gameModel.collisionCheck(bullets[idx].x, bullets[idx].y)
-                        if(check != -1) {
-                            bullets[idx].animate().cancel()
-                            enemies[check].animate().cancel()
-                        }
-                    }
             }
         }
-        //적 등장 담당 타이머 설정
-        enemyTimer = timer(period = 1000, initialDelay = 1000L){
-            val em = gameModel.setEnemy()
-            //뷰와 setEnemy 값 연결
-            if(em != -1){
-                runOnUiThread {
-                    enemies[em].x = gameModel.enemyInfoX(em)
-                    enemies[em].y = 0F
-                    enemies[em].visibility = View.VISIBLE
-                    //enemy의 애니메이션
-                    enemies[em].animate().translationY(realHeight)
-                        .setDuration(gameModel.enemyInfoD(em))
-                        .setListener(object : AnimatorListenerAdapter(){
-                            override fun onAnimationEnd(animation: Animator?) {
-                                if(enemies[em].y == realHeight){
-                                    if(gameModel.isGameEnd()){
-                                        Toast.makeText(this@MainActivity, "게임 종료!", Toast.LENGTH_SHORT).show()
-                                        enemyTimer.cancel()
-                                    }
-                                }
-                                enemies[em].x = 0F
-                                enemies[em].y = 0F
-                                enemies[em].visibility = View.GONE
-                                gameModel.enemyReady(em)
-                            }
-                        })
-                    enemies[em].animate().setUpdateListener {
-                        gameModel.updateEnemy(em, enemies[em].y)
+
+        //타이머 설정 (1ms마다 데이터 변경)
+        var oneCheck = 0
+        updateTimer = timer(period = 1){
+            gameModel.dataUpdate() //뷰에 적용할 데이터를 모델에서 업데이트
+
+            oneCheck += 1 //time check
+
+            //enemy는 1초마다 하나씩 생성
+            if(oneCheck == 1000) {
+                oneCheck = 0
+                val em = gameModel.setEnemy() //새로운 enemy 데이터 모델에서 가져오기
+                //가져온 enemy 데이터 뷰에 적용
+                if (em != -1) {
+                    runOnUiThread {
+                        enemies[em].x = gameModel.enemyInfoX(em)
+                        enemies[em].y = gameModel.enemyInfoY(em)
+                        enemies[em].visibility = View.VISIBLE
                     }
                 }
+                Log.d("enemies em", "$em")
             }
+
+            //모델 데이터를 뷰에 적용
+            runOnUiThread {
+                //bullet 위치 적용
+                for(i in 0..1){
+                    if(gameModel.isBulletLimitOut(i)){
+                        bullets[i].x = 0F
+                        bullets[i].y = 0F
+                        bullets[i].visibility = View.GONE
+                    }
+                    else{
+                        bullets[i].x = gameModel.bulletInfoX(i)
+                        bullets[i].y = gameModel.bulletInfoY(i)
+                    }
+                }
+
+                //enemy 위치 적용
+                for(i in 0..4) {
+                    if(gameModel.isEnemyLimitOut(i)){
+                        /*if(gameModel.isGameEnd()){
+                            Toast.makeText(this@MainActivity, "게임 종료", Toast.LENGTH_SHORT).show()
+                            enemyTimer.cancel()
+                        }*/
+                        enemies[i].x = 0F
+                        enemies[i].y = 0F
+                        enemies[i].visibility = View.GONE
+                    }
+                    else
+                        enemies[i].y = gameModel.enemyInfoY(i)
+                }
+
+                //충돌한 bullet, enemy 삭제
+                for(i in 0..1){
+                    val idx = gameModel.bulletInfoCollision(i)
+                    if(idx != -1){
+                        enemies[idx].x = 0F
+                        enemies[idx].y = 0F
+                        enemies[idx].visibility = View.GONE
+
+                        bullets[i].x = 0F
+                        bullets[i].y = 0F
+                        bullets[i].visibility = View.GONE
+                    }
+                }
+
+            }
+
         }
     }
 }
+
 
