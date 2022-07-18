@@ -13,10 +13,10 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:background="#D6E6F6"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintVertical_bias="0.0"
         app:layout_constraintHeight_percent="0.7">
 
@@ -25,134 +25,152 @@
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:scaleType="fitXY"
-            android:src="@drawable/tmp_cannon"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHeight_percent="0.15"
-            app:layout_constraintHorizontal_bias="0.498"
+            android:src="@drawable/cannon"
             app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.995"
-            app:layout_constraintWidth_percent="0.2" />
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintVertical_bias="1"
+            app:layout_constraintWidth_percent="0.2"
+            app:layout_constraintHeight_percent="0.15" />
 
         <ImageView
             android:id="@+id/bullet1"
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:src="@drawable/circle"
+            android:contentDescription="@string/bullet_drawing"
             android:scaleType="fitXY"
             android:visibility="gone"
-            android:contentDescription="@string/bullet_drawing"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHeight_percent="0.08"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintVertical_bias="0.0"
-            app:layout_constraintWidth_percent="0.08" />
+            app:layout_constraintWidth_percent="0.08"
+            app:layout_constraintHeight_percent="0.08" />
 
         <ImageView
             android:id="@+id/bullet2"
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:src="@drawable/circle"
+            android:contentDescription="@string/bullet_drawing"
             android:scaleType="fitXY"
             android:visibility="gone"
-            android:contentDescription="@string/bullet_drawing"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHeight_percent="0.08"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintVertical_bias="0.0"
-            app:layout_constraintWidth_percent="0.08" />
+            app:layout_constraintWidth_percent="0.08"
+            app:layout_constraintHeight_percent="0.08" />
 
         <ImageView
             android:id="@+id/enemy1"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:contentDescription="@string/enemy_drawing"
             android:src="@drawable/enemy"
+            android:contentDescription="@string/enemy_drawing"
             android:scaleType="fitXY"
             android:visibility="gone"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintHeight_percent="0.1"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintVertical_bias="0.0"
-            app:layout_constraintWidth_percent="0.1"/>
+            app:layout_constraintWidth_percent="0.1"
+            app:layout_constraintHeight_percent="0.1"/>
 
         <ImageView
             android:id="@+id/enemy2"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:contentDescription="@string/enemy_drawing"
             android:src="@drawable/enemy"
+            android:contentDescription="@string/enemy_drawing"
             android:scaleType="fitXY"
             android:visibility="gone"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintHeight_percent="0.1"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintVertical_bias="0.0"
-            app:layout_constraintWidth_percent="0.1"/>
+            app:layout_constraintWidth_percent="0.1"
+            app:layout_constraintHeight_percent="0.1" />
 
         <ImageView
             android:id="@+id/enemy3"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:contentDescription="@string/enemy_drawing"
             android:src="@drawable/enemy"
+            android:contentDescription="@string/enemy_drawing"
             android:scaleType="fitXY"
             android:visibility="gone"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintHeight_percent="0.1"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintVertical_bias="0.0"
-            app:layout_constraintWidth_percent="0.1"/>
+            app:layout_constraintWidth_percent="0.1"
+            app:layout_constraintHeight_percent="0.1" />
 
         <ImageView
             android:id="@+id/enemy4"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:contentDescription="@string/enemy_drawing"
             android:src="@drawable/enemy"
+            android:contentDescription="@string/enemy_drawing"
             android:scaleType="fitXY"
             android:visibility="gone"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintHeight_percent="0.1"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintVertical_bias="0.0"
-            app:layout_constraintWidth_percent="0.1"/>
+            app:layout_constraintWidth_percent="0.1"
+            app:layout_constraintHeight_percent="0.1" />
 
         <ImageView
             android:id="@+id/enemy5"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:contentDescription="@string/enemy_drawing"
             android:src="@drawable/enemy"
+            android:contentDescription="@string/enemy_drawing"
             android:scaleType="fitXY"
             android:visibility="gone"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintHeight_percent="0.1"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintVertical_bias="0.0"
-            app:layout_constraintWidth_percent="0.1"/>
+            app:layout_constraintWidth_percent="0.1"
+            app:layout_constraintHeight_percent="0.1" />
+
+        <ImageView
+            android:id="@+id/enemy6"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:src="@drawable/enemy"
+            android:contentDescription="@string/enemy_drawing"
+            android:scaleType="fitXY"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintVertical_bias="0.0"
+            app:layout_constraintWidth_percent="0.1"
+            app:layout_constraintHeight_percent="0.1" />
+
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -161,56 +179,66 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:progress="50"
-        app:layout_constraintBottom_toTopOf="@+id/tv_rotate"
-        app:layout_constraintEnd_toStartOf="@+id/guideline3"
-        app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/game_stage" />
+        app:layout_constraintEnd_toStartOf="@+id/guidelineHorizontalCenter"
+        app:layout_constraintBottom_toTopOf="@+id/guidelineVerticalNinety"
+        app:layout_constraintTop_toBottomOf="@+id/game_stage"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintVertical_bias="0.7"/>
 
     <TextView
         android:id="@+id/tv_rotate"
-        style="@style/game_control_text"
         android:layout_width="100dp"
         android:layout_height="wrap_content"
         android:text="@string/str_rotate"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/guideline3"
-        app:layout_constraintHorizontal_bias="0.509"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/rotate_bar" />
+        app:layout_constraintEnd_toStartOf="@+id/guidelineHorizontalCenter"
+        app:layout_constraintTop_toTopOf="@+id/guidelineVerticalNinety"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintVertical_bias="0.0"
+        style="@style/game_control_text"/>
 
     <ImageButton
         android:id="@+id/fire_button"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:scaleType="fitCenter"
         android:src="@drawable/fire_icon"
         android:contentDescription="@string/str_fire"
-        app:layout_constraintBottom_toTopOf="@+id/tv_fire"
-        app:layout_constraintDimensionRatio="1"
+        android:scaleType="fitCenter"
+        app:layout_constraintStart_toStartOf="@+id/guidelineHorizontalCenter"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.487"
-        app:layout_constraintStart_toStartOf="@+id/guideline3"
         app:layout_constraintTop_toBottomOf="@+id/game_stage"
-        app:layout_constraintWidth_percent="0.3"
-        app:layout_constraintHorizontal_chainStyle="spread"/>
+        app:layout_constraintBottom_toTopOf="@+id/guidelineVerticalNinety"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintVertical_bias="0.7"
+        app:layout_constraintDimensionRatio="1"
+        app:layout_constraintWidth_percent="0.3" />
 
     <TextView
         android:id="@+id/tv_fire"
-        style="@style/game_control_text"
         android:layout_width="150dp"
         android:layout_height="wrap_content"
         android:text="@string/str_fire"
-        app:layout_constraintTop_toBottomOf="@id/fire_button"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="@+id/guidelineHorizontalCenter"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="@+id/guideline3" />
+        app:layout_constraintTop_toTopOf="@+id/guidelineVerticalNinety"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintVertical_bias="0.0"
+        style="@style/game_control_text" />
 
     <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/guideline3"
+        android:id="@+id/guidelineHorizontalCenter"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         app:layout_constraintGuide_percent="0.5" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guidelineVerticalNinety"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.95" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

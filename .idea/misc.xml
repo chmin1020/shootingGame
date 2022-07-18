@@ -3,6 +3,7 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/Users/jeong/AndroidStudioProjects/ShootingGame/app/src/main/res/drawable/cannon.xml" value="0.2205" />
         <entry key="..\:/Users/jeong/AndroidStudioProjects/ShootingGame/app/src/main/res/drawable/circle.xml" value="0.2205" />
         <entry key="..\:/Users/jeong/AndroidStudioProjects/ShootingGame/app/src/main/res/drawable/enemy.xml" value="0.1235" />
         <entry key="..\:/Users/jeong/AndroidStudioProjects/ShootingGame/app/src/main/res/drawable/fire_icon.xml" value="0.1235" />
