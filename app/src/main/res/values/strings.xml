@@ -2,6 +2,8 @@
     <string name="app_name">ShootingGame</string>
     <string name="str_rotate">Rotate</string>
     <string name="str_fire">Fire</string>
+    <string name="str_life">Life : xx</string>
     <string name="bullet_drawing">Bullet</string>
     <string name="enemy_drawing">Enemy</string>
+    <string name="cannon_drawing">Cannon</string>
 </resources>

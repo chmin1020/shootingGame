@@ -5,11 +5,10 @@
     android:id="@+id/layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
-
+    tools:context=".controller.MainActivity">
 
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/game_stage"
+        android:id="@+id/game_display"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:background="#D6E6F6"
@@ -20,12 +19,27 @@
         app:layout_constraintVertical_bias="0.0"
         app:layout_constraintHeight_percent="0.7">
 
+        <FrameLayout
+            android:id="@+id/game_stage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
+
+        <TextView
+            android:id="@+id/lifeCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/str_life"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            style="@style/game_control_text"/>
+
         <ImageView
             android:id="@+id/cannon"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:scaleType="fitXY"
             android:src="@drawable/cannon"
+            android:contentDescription="@string/cannon_drawing"
+            android:scaleType="fitXY"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
@@ -37,23 +51,6 @@
 
         <ImageView
             android:id="@+id/bullet1"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:src="@drawable/circle"
-            android:contentDescription="@string/bullet_drawing"
-            android:scaleType="fitXY"
-            android:visibility="gone"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintVertical_bias="0.0"
-            app:layout_constraintWidth_percent="0.08"
-            app:layout_constraintHeight_percent="0.08" />
-
-        <ImageView
-            android:id="@+id/bullet2"
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:src="@drawable/circle"
@@ -86,92 +83,6 @@
             app:layout_constraintWidth_percent="0.1"
             app:layout_constraintHeight_percent="0.1"/>
 
-        <ImageView
-            android:id="@+id/enemy2"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:src="@drawable/enemy"
-            android:contentDescription="@string/enemy_drawing"
-            android:scaleType="fitXY"
-            android:visibility="gone"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintVertical_bias="0.0"
-            app:layout_constraintWidth_percent="0.1"
-            app:layout_constraintHeight_percent="0.1" />
-
-        <ImageView
-            android:id="@+id/enemy3"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:src="@drawable/enemy"
-            android:contentDescription="@string/enemy_drawing"
-            android:scaleType="fitXY"
-            android:visibility="gone"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintVertical_bias="0.0"
-            app:layout_constraintWidth_percent="0.1"
-            app:layout_constraintHeight_percent="0.1" />
-
-        <ImageView
-            android:id="@+id/enemy4"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:src="@drawable/enemy"
-            android:contentDescription="@string/enemy_drawing"
-            android:scaleType="fitXY"
-            android:visibility="gone"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintVertical_bias="0.0"
-            app:layout_constraintWidth_percent="0.1"
-            app:layout_constraintHeight_percent="0.1" />
-
-        <ImageView
-            android:id="@+id/enemy5"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:src="@drawable/enemy"
-            android:contentDescription="@string/enemy_drawing"
-            android:scaleType="fitXY"
-            android:visibility="gone"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintVertical_bias="0.0"
-            app:layout_constraintWidth_percent="0.1"
-            app:layout_constraintHeight_percent="0.1" />
-
-        <ImageView
-            android:id="@+id/enemy6"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:src="@drawable/enemy"
-            android:contentDescription="@string/enemy_drawing"
-            android:scaleType="fitXY"
-            android:visibility="gone"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintVertical_bias="0.0"
-            app:layout_constraintWidth_percent="0.1"
-            app:layout_constraintHeight_percent="0.1" />
-
-
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <SeekBar
@@ -182,13 +93,13 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/guidelineHorizontalCenter"
         app:layout_constraintBottom_toTopOf="@+id/guidelineVerticalNinety"
-        app:layout_constraintTop_toBottomOf="@+id/game_stage"
+        app:layout_constraintTop_toBottomOf="@+id/game_display"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintVertical_bias="0.7"/>
 
     <TextView
         android:id="@+id/tv_rotate"
-        android:layout_width="100dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/str_rotate"
         app:layout_constraintStart_toStartOf="parent"
@@ -208,7 +119,7 @@
         android:scaleType="fitCenter"
         app:layout_constraintStart_toStartOf="@+id/guidelineHorizontalCenter"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/game_stage"
+        app:layout_constraintTop_toBottomOf="@+id/game_display"
         app:layout_constraintBottom_toTopOf="@+id/guidelineVerticalNinety"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintVertical_bias="0.7"
@@ -217,7 +128,7 @@
 
     <TextView
         android:id="@+id/tv_fire"
-        android:layout_width="150dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/str_fire"
         app:layout_constraintStart_toStartOf="@+id/guidelineHorizontalCenter"
