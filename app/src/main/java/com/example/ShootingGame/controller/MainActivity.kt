@@ -1,6 +1,5 @@
 package com.example.ShootingGame.controller
 
-import android.media.Image
 import android.os.Bundle
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
@@ -26,7 +25,10 @@ import kotlin.concurrent.timer
  *          2. 게임 종료
  */
 class MainActivity : AppCompatActivity() {
-
+    //MovingObject(Bullet, Enemy)를 표시할 뷰를 관리하는 리스트
+    private val bulletViews = mutableListOf<ImageView>()
+    private val enemyViews = mutableListOf<ImageView>()
+   
     //모델의 데이터와 뷰의 위치를 주기적으로 갱신하기 위한 타이머
     private lateinit var updateTimer: Timer
 
@@ -67,7 +69,9 @@ class MainActivity : AppCompatActivity() {
 
         //탄환 발사
         inView.fireButton.setOnClickListener {
-            gameModel.shootBullet()
+            val bullet = gameModel.shootBullet()
+            if(bullet != null)
+                bulletViews.add(makeNewMovingView(bullet, gameModel.bulletInfo))
         }
     }
 
@@ -102,8 +106,13 @@ class MainActivity : AppCompatActivity() {
      */
     private fun timerStartForPeriodicUpdate(){
         updateTimer = timer(period = gameModel.updatePeriod) {
-            gameModel.totalModelPeriodicUpdate() //1
+            gameModel.totalMovingUpdate() //1
+
             runOnUiThread {
+                val enemy = gameModel.newEnemy()
+                if(enemy != null)
+                    enemyViews.add(makeNewMovingView(enemy, gameModel.enemyInfo))
+
                 totalUIPeriodicUpdate() //2
             }
         }
@@ -121,11 +130,11 @@ class MainActivity : AppCompatActivity() {
      *      3. enemy 새로 생성
      */
     private fun totalUIPeriodicUpdate(){
-        //기존 뷰를 전부 제거 (0)
-        inView.gameStage.removeAllViews()
         gameEndCheckProcess() //1
-        movingViewsUpdateProcess(gameModel.getBullets(), gameModel.bulletInfo) //2
-        movingViewsUpdateProcess(gameModel.getEnemies(), gameModel.enemyInfo) //3
+        movingViewsDelete(gameModel.getBulletDeleteInfo(), bulletViews)
+        movingViewsDelete(gameModel.getEnemyDeleteInfo(), enemyViews)
+        movingViewsPosUpdate(gameModel.getBullets(), bulletViews) //2
+        movingViewsPosUpdate(gameModel.getEnemies(), enemyViews) //3
     }
 
     /* (게임 종료 여부 확인)을 위한 함수 */
@@ -140,20 +149,37 @@ class MainActivity : AppCompatActivity() {
             gameEnd()
     }
 
-    /* (뷰 새로 생성)을 위한 함수 */
-    private fun movingViewsUpdateProcess(list: List<MovingObject>, info: ObjectInfo){
+    private fun movingViewsDelete(list: List<Int>, viewList: MutableList<ImageView>){
         val it = list.iterator()
-        var curObj: MovingObject
+        var num: Int
 
-        //데이터 개수만큼 실제로 화면에 그리기
+        while(it.hasNext()){
+            num = it.next()
+            inView.gameStage.removeView(viewList[num])
+            viewList.removeAt(num)
+        }
+    }
+
+    /* (뷰 새로 생성)을 위한 함수 */
+    private fun movingViewsPosUpdate(list: List<MovingObject>, viewList: MutableList<ImageView>){
+        val it = list.iterator()
+        val viewIt = viewList.iterator()
+
+        var curObj: MovingObject
+        var curView: ImageView
+
+        //데이터 개수만큼 업데이트
         while(it.hasNext()){
             curObj = it.next()
-            drawMovingView(curObj, info)
+            curView = viewIt.next()
+
+            curView.x = curObj.getX()
+            curView.y = curObj.getY()
         }
     }
 
     /* movingViesUpdateProcess 내부에서 실제 뷰를 추가할 때 사용하는 함수 */
-    private fun drawMovingView(obj: MovingObject, info: ObjectInfo){
+    private fun makeNewMovingView(obj: MovingObject, info: ObjectInfo): ImageView{
         //새로운 뷰의 속성 지정 (무슨 info 받았냐에 따라 크기와 소스 이미지 달라짐
         val newView = ImageView(this)
         newView.setImageResource(info.resId)
@@ -163,6 +189,7 @@ class MainActivity : AppCompatActivity() {
         newView.scaleType = ImageView.ScaleType.FIT_XY
 
         inView.gameStage.addView(newView) //속성 적용이 끝났으면 화면에 추가
+        return newView
     }
 
     //------------------------------------------------

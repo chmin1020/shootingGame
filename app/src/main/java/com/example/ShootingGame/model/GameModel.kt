@@ -40,6 +40,10 @@ class GameModel(displayX: Int, displayY: Int) {
     private val bulletModels =  mutableListOf<Bullet>()
     private val enemyModels =  mutableListOf<Enemy>()
 
+    //deletion 리스트
+    private val deletedBullets = mutableListOf<Int>()
+    private val deletedEnemies = mutableListOf<Int>()
+
     //대포에 관한 데이터 (중심까지의 크기, 중심의 위치)
     //대포의 중심을 기점으로 회전하므로 중심 위주의 데이터가 필요함
     private val cannonHalf = displayY * 0.075F
@@ -92,6 +96,13 @@ class GameModel(displayX: Int, displayY: Int) {
         return enemyModels.toList()
     }
 
+    fun getBulletDeleteInfo(): List<Int>{
+        return deletedBullets
+    }
+    fun getEnemyDeleteInfo(): List<Int>{
+        return deletedEnemies
+    }
+
     /* 3. life 데이터 */
     fun getLife(): Int{
         return life
@@ -114,9 +125,13 @@ class GameModel(displayX: Int, displayY: Int) {
     /* 2. 새로운 탄환을 포구에 생성하고 발사 (bullet 데이터 리스트에 값 추가)
          bulletModel 내에 새로운 탄환의 시작 위치와, 방향 벡터를 보낸다. (내부에서 이것으로 속도 설정)
          사용자가 fire 버튼을 눌러서 탄환을 발사하려고 할 때 사용된다. */
-    fun shootBullet(){
-        if(bulletLimit > bulletModels.size)
-            bulletModels.add(Bullet(bulletFirstX, bulletFirstY, cannonModel.getVectorX(), cannonModel.getVectorY()))
+    fun shootBullet(): Bullet? {
+        if(bulletLimit > bulletModels.size) {
+            val bullet = Bullet(bulletFirstX, bulletFirstY, cannonModel.getVectorX(), cannonModel.getVectorY())
+            bulletModels.add(bullet)
+            return bullet
+        }
+        return null
     }
 
     //------------------------------------------------
@@ -130,8 +145,7 @@ class GameModel(displayX: Int, displayY: Int) {
      *
      *   이 함수가 타이머에 따라 실행되며 위 3가지 동작을 수행함
      */
-    fun totalModelPeriodicUpdate(){
-        setEnemy() //1
+    fun totalMovingUpdate(){
         allMovingUpdate() //2
         allDeletionUpdate() // 3, 4
     }
@@ -141,10 +155,15 @@ class GameModel(displayX: Int, displayY: Int) {
     /* 1. 주기적으로 랜덤 위치에 적 생성
         새로 게임에 등장할 적을 담당할 객체를 선택하고 세팅을 해주는 함수
         controller 내부 timer 에서 1초를 셀 때마다 실행되어 적 개체를 만든다. */
-    private fun setEnemy(){
+    fun newEnemy(): Enemy?{
         //랜덤 위치와 속도를 가진 enemy 생성
-        if(isItTimeForNewEnemy())
-            enemyModels.add(Enemy(enemyFirstX, enemyVelocity))
+        if(isItTimeForNewEnemy()) {
+            val enemy = Enemy(enemyFirstX, enemyVelocity)
+            enemyModels.add(enemy)
+            return enemy
+        }
+
+        return null
     }
 
     /* 타이머에 의한 실행 시 마다 따로 시간을 재서 new enemy 등장 타이밍을 정하는 함수
@@ -183,8 +202,28 @@ class GameModel(displayX: Int, displayY: Int) {
             1) 화면에서 벗어남
             2) 적과 탄환이 충돌함                     */
     private fun allDeletionUpdate(){
+        deletedBullets.clear()
+        deletedEnemies.clear()
         deletionOfOutLimit() //1
         deletionOfCollision() //2
+        deletedBullets.distinct()
+        deletedEnemies.distinct()
+        deletedBullets.sortDescending()
+        deletedEnemies.sortDescending()
+        realDelete()
+    }
+
+    private fun realDelete(){
+        //현재 작동하는 bullet, enemy 데이터 리스트를 순회하기 위한 iterator
+        val deletedBulletNum = deletedBullets.iterator()
+        val deletedEnemyNum = deletedEnemies.iterator()
+
+        while(deletedBulletNum.hasNext())
+            bulletModels.removeAt(deletedBulletNum.next())
+
+        while(deletedEnemyNum.hasNext())
+            enemyModels.removeAt(deletedEnemyNum.next())
+
     }
 
     /* 객체가 화면에서 벗어났을 때 객체를 삭제하는 함수 */
@@ -197,21 +236,28 @@ class GameModel(displayX: Int, displayY: Int) {
         var eachObject: MovingObject
 
         //모든 bullet 데이터를 순회하며 gameStage 밖에 있는(안 겹치는) 탄환 찾으면 제거
+        var cnt = 0
         while(bulletInList.hasNext()){
             eachObject = bulletInList.next()
             if(!isInRange(eachObject.getX(), eachObject.getY(), bulletInfo,
-                    0F, 0F, displayInfo))
-                bulletInList.remove()
+                    0F, 0F, displayInfo)) {
+                //bulletInList.remove()
+                deletedBullets.add(cnt)
+            }
+            cnt += 1
         }
 
+        cnt = 0
         //모든 enemy 데이터를 순회하며 gameStage 밖에 있는(안 겹치는) 적 찾으면 제거
         while(enemyInList.hasNext()){
             eachObject = enemyInList.next()
             if(!isInRange(eachObject.getX(), eachObject.getY(), enemyInfo,
                     0F, 0F, displayInfo)) {
-                enemyInList.remove()
-                life -= 1 //enemy 탈출 시 life 차감
+                //enemyInList.remove()
+                deletedEnemies.add(cnt)
+              //  life -= 1 //enemy 탈출 시 life 차감
             }
+            cnt += 1
         }
     }
 
@@ -224,19 +270,25 @@ class GameModel(displayX: Int, displayY: Int) {
         var eachEnemy: Enemy
 
         //탄환을 기준으로 각 탄환마다 모든 적들과 위치 비교
+        var bulletCnt = 0
         while(bulletInList.hasNext()){
             eachBullet = bulletInList.next()
             val enemyInList = enemyModels.iterator()
+            var enemyCnt = 0
             while(enemyInList.hasNext()){
+
                 eachEnemy = enemyInList.next()
                 //두 정보 값을 봤을 때 겹친다고 판단이 된다면 둘 다 제거
                 if(isInRange(eachBullet.getX(), eachBullet.getY(), bulletInfo,
                         eachEnemy.getX(), eachEnemy.getY(), enemyInfo)){
-                    bulletInList.remove()
-                    enemyInList.remove()
+
+                    deletedBullets.add(bulletCnt)
+                    deletedEnemies.add(enemyCnt)
                     break
                 }
+                enemyCnt += 1
             }
+            bulletCnt += 1
         }
     }
 
