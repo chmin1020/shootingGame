@@ -1,222 +1,259 @@
 package com.example.ShootingGame.model
 
-import android.util.Log
-import kotlin.math.abs
+import com.example.ShootingGame.R
 import kotlin.math.floor
 
 /**
-        <메인 게임 모델> - Cannon 1개, Enemy 6개, Bullet 2개, Life 1개를 가짐
-        각 세부 모델은 다른 모델과 직접적으로 연결되지 않음 -> GameModel = 개별 모델들의 controller
-        GameModel 역할은 아래에 기술, 역할에 따라 함수가 구성됨
-        ((사용자 입력에 의해 변경되는 데이터 갱신))
-            1. 대포 회전 각도 갱신 --> cannonRotate()
-            2. 탄환 발사를 위한 탄환 선택과 설정 --> shootBullet()
-        ((자동으로 변경되는 데이터 갱신)) --> periodicModelUpdate()
-            1. 주기적으로 랜덤 위치에 적 생성 --> setEnemy()
-            2. 발사한 탄환과 랜덤 발생하는 적들의 움직임 --> allBulletUpdate() / allEnemyUpdate()
-            3. 적과 탄환의 충돌 여부 체크 및 처리 --> allCollisionUpdate()
-            4. 적이 화면을 빠져나갈 경우 life 차감 --> lifeDecrease() <allEnemyUpdate() 내부에서>
-        ((액티비티에 데이터 현황 알리기))
-            1. bullet 데이터 --> getBulletX(), getBulletY(), isBulletActivating()
-            2. enemy 데이터 --> getEnemyX(), getEnemy(), isEnemyActivating()
-            3. collision 데이터 --> collidedEnemyWithBullet()
-            4. life 데이터 --> getLife()
-*/
-class GameModel(displayX: Float, displayY: Float) {
-    //---------------------------
+ *     <메인 게임 모델> - Cannon, Enemy, Bullet 클래스를 1개씩 가짐
+ *      각 세부 모델은 다른 모델과 직접적으로 연결되지 않음 -> GameModel = 개별 모델들의 controller
+ *     `GameModel 역할은 아래에 기술, 역할에 따라 함수가 구성됨
+ *
+ *      ((액티비티에 데이터 현황 알리기))
+ *          1. 화면 속 탄환들 --> getBullets()
+ *          2. 화면 속 적들 --> getEnemies()
+ *          3. 게임에서 남은 목숨 --> getLife()
+ *
+ *      ((사용자 입력에 의해 변경되는 데이터 갱신))
+ *          1. 대포 회전 각도 갱신 --> cannonRotate()
+ *          2. 새로운 탄환을 포구에 생성하고 발사 --> shootBullet()
+ *
+ *      ((자동으로 변경되는 데이터 갱신)) --> periodicModelUpdate()
+ *          1. 주기적으로 랜덤 위치에 적 생성 --> setEnemy()
+ *          2. 발사한 탄환과 랜덤 발생하는 적들의 움직임 --> allMovingUpdate()
+ *          3. 탄환과 적들 적절하게 삭제, 적이 탈출하면 life 차감 --> allDeletionUpdate()
+ */
+class GameModel(displayX: Int, displayY: Int) {
+    //------------------------------------------------
     //상수 영역
     //
 
-    //대포에 관한 데이터
+    //게임 내 객체(Bullet, Enemy)의 위치 변경이 발생하는 빈도
+    val updatePeriod = 80L
+
+    //게임 내 개체들의 정보 (이미지, 가로, 세로 순)
+    val bulletInfo = ObjectInfo((0.08F * displayX).toInt(), (0.08F * displayY).toInt(), R.drawable.bullet)
+    val enemyInfo = ObjectInfo((0.1F * displayX).toInt(), (0.1F * displayY).toInt(), R.drawable.enemy)
+    private val displayInfo = ObjectInfo(displayX, displayY)
+
+    //게임에서 나타나는 각 개체의 데이터를 가진 모델 변수들
+    private val cannonModel = Cannon()
+    private val bulletModels =  mutableListOf<Bullet>()
+    private val enemyModels =  mutableListOf<Enemy>()
+
+    //대포에 관한 데이터 (중심까지의 크기, 중심의 위치)
+    //대포의 중심을 기점으로 회전하므로 중심 위주의 데이터가 필요함
     private val cannonHalf = displayY * 0.075F
     private val cannonBaseX = displayX * 0.5F
     private val cannonBaseY = displayY - cannonHalf
 
+    //화면 속 탄환 최대 숫자 (난이도 조절을 위해서는 탄환이 무제한이면 안된다는 판단)
+    private val bulletLimit = 3
 
-    //게임 내 객체(Bullet, Enemy)의 위치 변경이 발생하는 빈도
-    val updatePeriod = 40L
+    //탄환에 대한 데이터 (탄환의 첫 위치 좌표값 -> cannon 각도에 따라 달라짐)
+    //좌표 기준을 중앙으로 맞추기 위하여 bulletWidth/2, bulletHeight/2를 차감
+    private val bulletFirstX: Float
+        get() = cannonBaseX + cannonModel.getVectorX() * cannonHalf - bulletInfo.width/2
+    private val bulletFirstY: Float
+        get() = cannonBaseY + cannonModel.getVectorY() * cannonHalf - bulletInfo.height/2
+
+    //적에 대한 데이터 (적의 첫 x 위치, 내려오는 속도)
+    //위치는 가로 범위 내에서 랜덤,속도는 20~35 사이에서 랜덤
+    private val enemyFirstX: Float
+        get() = Math.random().toFloat() * (displayInfo.width - bulletInfo.width)
+    private val enemyVelocity : Float
+        get() = Math.random().toFloat() * 20F + 30F
+
+    //------------------------------------------------
+    //변수 영역
+    //
+
     //적 개체가 언제 나타날 주기의 기준(enemyPeriod)과 관련 카운터(countForEnemy)
-    var enemyPeriod = 1000L
-    private var countForEnemy = 0L
+    //enemyPeriod 역시 랜덤하게 변하도록 설정했기 때문에 변수 영역에 넣었음
+    private var enemyPeriod = 800L
+    private var countTimeForEnemy = 0L
 
-    //화면 크기 (컨트롤 관련 뷰를 제외한 게임 화면)
-    private val xScale = displayX
-    private val yScale = displayY
+    //현재 life 개수를 담당하는 변수
+    private var life = 2
 
-    //게임에서 나타나는 각 개체의 데이터를 가진 모델 변수들
-    private val cannonModel = Cannon()
-    private val bulletModel = Bullet()
-    private val enemyModel = Enemy()
-    private var lifeModel = Life()
 
-    //적 개체의 random 속도 배열 (화면의 비율로 속도를 지정하여 기기 호환성 유지)
-    private val randomVelocities = arrayOf(yScale/100, yScale/75, yScale/60, yScale/50, yScale/35)
+    //------------------------------------------------
+    //함수 영역 (액티비티에 데이터 현황 알리기)
+    //   1. bullet 데이터
+    //   2. enemy 데이터
+    //   3. life 데이터
+    //
 
-    //게임 속 bullet, enemy 크기
-    val bulletWidth = 0.08F * xScale
-    val bulletHeight = 0.08F * yScale
-    private val enemyWidth = 0.1F * xScale
-    private val enemyHeight = 0.1F * yScale
+    /* 1,2. bullet or enemy 데이터
+         액티비티에서 내용을 변경하는 일이 없도록 List 변환을 한 뒤 반환 */
+    fun getBullets(): List<Bullet> {
+        return bulletModels.toList()
+    }
+    fun getEnemies(): List<Enemy>{
+        return enemyModels.toList()
+    }
 
-    //게임 화면에 나타나는 bullet & enemy 개수
-    var curBulletCnt = 0
-    var curEnemyCnt = 0
+    /* 3. life 데이터 */
+    fun getLife(): Int{
+        return life
+    }
 
-    ///////////////////////////((사용자 입력에 의해 변경되는 데이터 갱신))////////////////////////////////
-    //////////////////////////////////////1. 대포 회전 각도 갱신//////////////////////////////////////
-    //////////////////////////////2. 탄환 발사를 위한 탄환 선택과 설정//////////////////////////////////
 
-    /*  1. 대포 회전 각도 갱신
-          cannonModel에 대포를 progress만큼 회전할 것을 명령 */
+    //------------------------------------------------
+    //함수 영역 (사용자 입력에 의해 변경되는 데이터 갱신)
+    //   1. 대포 회전 각도 갱신
+    //   2. 새로운 탄환을 포구에 생성하고 발사
+    //
+
+    /*  1. 대포 회전 각도 갱신 (각도를 return, 대포 회전 속성으로 사용)
+          사용자가 rotateBar 움직임을 통해 대포를 회전하려 할 때 사용된다.
+          cannonModel 대포를 progress 만큼 회전할 것을 명령 */
     fun cannonRotate(progress: Int) : Float{
         return cannonModel.rotate(progress)
     }
 
-    /* 2. 탄환 발사를 위한 탄환 선택과 설정
-         bullet의 시작 위치와 도착 위치를 계산하고 각 bulletModel에 적용하는 함수
-         controller에서 bullet이 발사되어야 함을 알렸을 때 실행되는 함수
-         대포의 회전 정도에 따라 각 위치가 달라지므로 slope(화면에서 대포 중심과 화구 사이 기울기)를 통해 판별 */
+    /* 2. 새로운 탄환을 포구에 생성하고 발사 (bullet 데이터 리스트에 값 추가)
+         bulletModel 내에 새로운 탄환의 시작 위치와, 방향 벡터를 보낸다. (내부에서 이것으로 속도 설정)
+         사용자가 fire 버튼을 눌러서 탄환을 발사하려고 할 때 사용된다. */
     fun shootBullet(){
-        val sx = cannonBaseX + cannonModel.getVectorX() * cannonHalf - bulletWidth/2
-        val sy = cannonBaseY + cannonModel.getVectorY() * cannonHalf - bulletHeight/2
-        bulletModel.newShooting(sx, sy ,cannonModel.getVectorX(), cannonModel.getVectorY())
-        curBulletCnt = bulletModel.getBulletCnt()
+        if(bulletLimit > bulletModels.size)
+            bulletModels.add(Bullet(bulletFirstX, bulletFirstY, cannonModel.getVectorX(), cannonModel.getVectorY()))
     }
-    ////////////////////////////////////////////////////////////////////////////////////////////////
 
+    //------------------------------------------------
+    //함수 영역 (자동으로 변경되는 데이터 갱신)
+    //
 
-    ////////////////////////////////((자동으로 변경되는 데이터 갱신))////////////////////////////////////
-    ///////////////////////////////1. 주기적으로 랜덤 위치에 적 생성/////////////////////////////////////
-    //////////////////////////2. 발사한 탄환과 랜덤 발생하는 적들의 움직임/////////////////////////////////
-    /////////////////////////////3. 적과 탄환의 충돌 여부 체크 및 처리///////////////////////////////////
-    ////////////////////////////4. 적이 화면을 빠져나갈 경우 life 차감///////////////////////////////////
-
-    /*  activity(controller)에서 40ms마다 실행되는 타이머로 반복 실행되는 함수
-        이 함수가 타이머에 따라 실행되면서 앞서 서술한 4가지 동작을 모두 수행함 */
+    /**  activity(controller)에서 40ms마다 실행되는 타이머로 반복 실행되는 함수
+     *    1. 주기적으로 랜덤 위치에 적 생성
+     *    2. 발사한 탄환과 랜덤 발생하는 적들의 움직임
+     *    3. 탄환과 적들 적절하게 삭제, 적이 탈출하면 life 차감
+     *
+     *   이 함수가 타이머에 따라 실행되며 위 3가지 동작을 수행함
+     */
     fun totalModelPeriodicUpdate(){
         setEnemy() //1
-        //2, 3, 4
-        allBulletUpdate() //bullet update
-        allEnemyUpdate() //enemy update
-        //allDeletionUpdate() //collision & crossing limit update
+        allMovingUpdate() //2
+        allDeletionUpdate() // 3, 4
     }
+
+    //데이터를 변경하는 과정은 private -> 액티비티는 데이터 변경 요청만 한다.
+
     /* 1. 주기적으로 랜덤 위치에 적 생성
         새로 게임에 등장할 적을 담당할 객체를 선택하고 세팅을 해주는 함수
-        controller 내부 timer가 1초를 셀 때마다 실행되어 적 개체를 만든다.
-        적의 시작 위치(x)와 내려오는 속도는 무작위로 정한다. */
+        controller 내부 timer 에서 1초를 셀 때마다 실행되어 적 개체를 만든다. */
     private fun setEnemy(){
+        //랜덤 위치와 속도를 가진 enemy 생성
+        if(isItTimeForNewEnemy())
+            enemyModels.add(Enemy(enemyFirstX, enemyVelocity))
+    }
+
+    /* 타이머에 의한 실행 시 마다 따로 시간을 재서 new enemy 등장 타이밍을 정하는 함수
+       추가적으로 new enemy 마다 카운팅 시간을 새로 정한다. */
+    private fun isItTimeForNewEnemy(): Boolean{
         //enemy 카운터 갱신, 아직 생성할 때가 아니면 함수 종료
-        countForEnemy += updatePeriod
-        if(countForEnemy < enemyPeriod)
-            return
+        countTimeForEnemy += updatePeriod
+        if(countTimeForEnemy < enemyPeriod)
+            return false
 
-        //enemy 카운터를 초기화하고 목표 시간 다시 랜덤으로 설정
-        //목표 시간은 최소 600 ~ 최대 1000ms
-        countForEnemy = 0
-        enemyPeriod = floor(Math.random() * 400).toLong() + 600L
+        //enemy 카운터를 초기화하고 목표 시간 다시 랜덤으로 설정(최소 600 ~ 최대 900ms)
+        countTimeForEnemy = 0
+        enemyPeriod = floor(Math.random() * 300).toLong() + 600L
 
-        enemyModel.newEnemy(
-                    Math.random().toFloat() * (xScale - enemyWidth),
-                    randomVelocities[floor(Math.random() * 5).toInt()]
-                )
-        curEnemyCnt = enemyModel.getEnemyCnt()
+        return true
     }
 
-    /*
-    /* 2. 발사한 탄환과 랜덤 발생하는 적들의 움직임
-         allBulletUpdate - processAboutBulletLimit / allEnemyUpdate - processAboutEnemyLimit
-         두 쌍의 함수가 서로 연결되며, 추가적으로 enemy의 움직임은 lifeDecrease와 연결됨 */
-    /* 0~1까지 activate 상태인 bullet이 있다면 그 bullet의 위치 값 갱신 */*/
-    private fun allBulletUpdate(){
-        bulletModel.updateLocation()
+    /* 2. 발사한 탄환과 랜덤 발생하는 적들의 움직임 */
+    private fun allMovingUpdate(){
+        movingObjectUpdate(bulletModels)
+        movingObjectUpdate(enemyModels)
     }
 
-    /* 0~4까지 activate 상태인 enemy가 있다면 그 enemy의 위치 값 갱신(x는 고정, y만 변화) */
-    private fun allEnemyUpdate(){
-        enemyModel.updateLocation()
+    /* 화면 속 움직이는 객체들의 (위치)정보 업데이트 */
+    /* MovingObject 리스트를 받으므로 확장에 개방적 */
+    private fun movingObjectUpdate(list: List<MovingObject>) {
+        val it = list.iterator()
+        var curInfo: MovingObject
+        while (it.hasNext()) {
+            curInfo = it.next()
+            curInfo.locationUpdate()
+        }
     }
 
-    /* 3. 적과 탄환의 충돌 여부 체크 및 처리
-         allCollisionUpdate에서 각 탄환과 적을 비교하여 충돌을 체크
-         collisionCheck에서 두 객체 사이 거리를 확인하여 충돌 여부 확인 */
-    /* 각 탄환과 적의 충돌 여부를 확인하고, 충돌 발생 확인 시 초기화하는 함수 */
+    /* 3. 탄환과 적들 적절하게 삭제, 적이 탈출하면 life 차감
+            1) 화면에서 벗어남
+            2) 적과 탄환이 충돌함                     */
     private fun allDeletionUpdate(){
-        for(i in curBulletCnt - 1 downTo 0) {
-            if(overLimit(bulletModel.posAndVelocity[i]))
-                bulletModel.removeBullet(i)
+        deletionOfOutLimit() //1
+        deletionOfCollision() //2
+    }
+
+    /* 객체가 화면에서 벗어났을 때 객체를 삭제하는 함수 */
+    private fun deletionOfOutLimit(){
+        //현재 작동하는 bullet, enemy 데이터 리스트를 순회하기 위한 iterator
+        val bulletInList = bulletModels.iterator()
+        val enemyInList = enemyModels.iterator()
+
+        //리스트 속 각 데이터를 임시 저장할 변수
+        var eachObject: MovingObject
+
+        //모든 bullet 데이터를 순회하며 gameStage 밖에 있는(안 겹치는) 탄환 찾으면 제거
+        while(bulletInList.hasNext()){
+            eachObject = bulletInList.next()
+            if(!isInRange(eachObject.getX(), eachObject.getY(), bulletInfo,
+                    0F, 0F, displayInfo))
+                bulletInList.remove()
         }
-        curBulletCnt = bulletModel.getBulletCnt()
 
-        for(i in curEnemyCnt - 1 downTo 0) {
-            if(overLimit(enemyModel.posAndVelocity[i]))
-                enemyModel.removeEnemy(i)
+        //모든 enemy 데이터를 순회하며 gameStage 밖에 있는(안 겹치는) 적 찾으면 제거
+        while(enemyInList.hasNext()){
+            eachObject = enemyInList.next()
+            if(!isInRange(eachObject.getX(), eachObject.getY(), enemyInfo,
+                    0F, 0F, displayInfo)) {
+                enemyInList.remove()
+                life -= 1 //enemy 탈출 시 life 차감
+            }
         }
-        curEnemyCnt = enemyModel.getEnemyCnt()
     }
-    /*  모델 내부에서 각 탄환과 적의 x, y 거리를 비교하여 충돌을 확인하는 함수
-       모델의 dataUpdate에서 사용하므로 외부에서 접근할 수 없는 private 함수 */
 
-    /*private fun collisionCheck(bIdx : Int, eIdx : Int): Boolean{
-        //두 객체 bullet과 enemy의 x좌표, y좌표 차이를 구하기
-        val xDif: Float = abs(bulletModels[bIdx].getX() - enemyModels[eIdx].getX())
-        val yDif: Float = abs(bulletModels[bIdx].getY() - enemyModels[eIdx].getY())
+    /* 객체가 화면에서 벗어났을 때 객체를 삭제하는 함수 */
+    private fun deletionOfCollision(){
+        val bulletInList = bulletModels.iterator()
 
-        //거리 계산 및 충돌 여부 체크
-        if(xDif < enemyWidth && yDif < enemyHeight){
-            //충돌이 eIdx번째 enemy와 났다는 것을 임시 저장(뷰에 충돌을 적용하기 위한 데이터)
-            bulletModels[bIdx].setCollision(eIdx)
-            return true
+        //리스트 속 각 데이터를 임시 저장할 변수
+        var eachBullet: Bullet
+        var eachEnemy: Enemy
+
+        //탄환을 기준으로 각 탄환마다 모든 적들과 위치 비교
+        while(bulletInList.hasNext()){
+            eachBullet = bulletInList.next()
+            val enemyInList = enemyModels.iterator()
+            while(enemyInList.hasNext()){
+                eachEnemy = enemyInList.next()
+                //두 정보 값을 봤을 때 겹친다고 판단이 된다면 둘 다 제거
+                if(isInRange(eachBullet.getX(), eachBullet.getY(), bulletInfo,
+                        eachEnemy.getX(), eachEnemy.getY(), enemyInfo)){
+                    bulletInList.remove()
+                    enemyInList.remove()
+                    break
+                }
+            }
         }
-        return false
-    }*/
-
-
-
-    /* 4. 적이 화면을 빠져나갈 경우 life 차감
-         게임 속 목숨을 차감할 때 실행되는 함수 */
-    private fun lifeDecrease(){
-        lifeModel.lifeDecrease()
-    }
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-
-    ////////////////////////////////((액티비티에 데이터 현황 알리기))////////////////////////////////////
-    /////////////////////////////////////1. bullet 데이터////////////////////////////////////////////
-    /////////////////////////////////////2. enemy 데이터/////////////////////////////////////////////
-    ///////////////////////////////////3. collision 데이터///////////////////////////////////////////
-    /////////////////////////////////////4. life 데이터//////////////////////////////////////////////
-
-    /* 1.bullet 데이터 (위치값, 활성화 여부) */
-    /* 탄환의 현재 (x, y)좌표를 확인하는 함수들 */
-    fun getBulletInfo(): ArrayList<MovingObjectInfo>{
-        return bulletModel.posAndVelocity
     }
 
-    /* 2.enemy 데이터 (위치값, 활성화 여부) */
-    /* 적의 현재 (x, y)좌표를 확인하는 함수들 */
-    fun getEnemyInfo(): ArrayList<MovingObjectInfo>{
-        return enemyModel.posAndVelocity
-    }
+    /* 두 객체가 서로 겹치는지 확인하는 함수 */
+    private fun isInRange(x1: Float, y1:Float, info1: ObjectInfo, x2: Float, y2:Float, info2: ObjectInfo): Boolean {
+        //비교 대상의 우하단 꼭지점 좌표 계산 (범위 계산을 위해)
+        val endX2 = x2 + info2.width
+        val endY2 = y2 + info2.height
 
-    /*
-    /* 3. collision 데이터 (각 탄환을 기준으로 collision 발생 확인) */
-    /* idx를 색인으로 가진 탄환이 현재 enemy와 충돌된 상황인지 확인하는 함수
-      충돌이 되었다면 충돌한 enemy의 색인을 반환, 아니라면 -1을 반환
-        컨트롤러에서 뷰의 충돌 여부를 알고, 충돌한 두 뷰를 없앨 수 있도록 한다.*/
-    fun collidedEnemyWithBullet(idx: Int): Int{
-        return bulletModels[idx].collisionCheck()
-    }
-*/
-    /* 4. life 데이터 */
-    fun getLife(): Int{
-        return lifeModel.getLife()
-    }
-    ////////////////////////////////////////////////////////////////////////////////////////////////
+        //type1 개체가 비교 대상(type2)의 가로 범위와 겹치는가?
+        if(x1 !in x2..endX2 && x1 + info1.width !in x2..endX2)
+            return false
 
-    private fun overLimit(info: MovingObjectInfo): Boolean {
-        if(!(info.x in 0F..xScale))
-            return true
-        if(!(info.y in 0F..yScale))
-            return true
-        return false
+        //type1 개체가 비교 대상(type2)의 세로 범위와 겹치는가?
+        if(y1 !in y2..endY2 && y1 + info1.height !in y2..endY2)
+            return false
+
+        return true
     }
 }

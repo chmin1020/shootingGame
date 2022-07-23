@@ -1,33 +1,15 @@
 package com.example.ShootingGame.model
 
-class Enemy {
-    //적의 최대 개수 (10)
-    private val cntLimit = 10
-    private var currentCnt = 0
+/**
+ * <적 개체를 의미하는 클래스>
+ *     기본적으로 화면에서 움직이므로 부모 클래스는 MovingObject.
+ *     모든 적의 최초 위치 y값은 0이며, y 방향으로 움직인다.
+ *     따라서 y 속도(velY)만을 받아와서 위치 갱신에 활용함.
+ */
+class Enemy(sx: Float, vy: Float): MovingObject(sx, 0F) {
+    private val velY = vy
 
-    //현재 적의 위치와 속도(x,y, velocityX, velocityY)
-    var posAndVelocity = ArrayList<MovingObjectInfo>()
-
-    fun getEnemyCnt(): Int{
-        return currentCnt
-    }
-
-    fun newEnemy(startX: Float, velY: Float){
-        if(currentCnt == cntLimit)
-            return
-        currentCnt += 1
-
-        posAndVelocity.add(MovingObjectInfo(startX, 0F, 0F, velY))
-    }
-
-    fun removeEnemy(idx: Int){
-        currentCnt -= 1
-        posAndVelocity.removeAt(idx)
-    }
-
-    /* activity에서 주기적으로 타이머를 실행할 때 활성화된 탄환의 위치를 갱신하는 함수 */
-    fun updateLocation(){
-        for(i in 0 until currentCnt)
-            posAndVelocity[i].posUpdate()
+    override fun locationUpdate() {
+        curY += velY
     }
 }
