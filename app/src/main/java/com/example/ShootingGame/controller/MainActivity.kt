@@ -19,16 +19,16 @@ import kotlin.concurrent.timer
  *          1. 대포 회전 각도
  *          2. 탄환 발사
  *
- *      ((timer 통해 40ms 단위로 모델 요청 및 뷰 적용, onResume()에서 설정))
+ *      ((timer 통해 80ms 단위로 모델 요청 및 뷰 적용, onResume()에서 설정))
  *      <주기적인 데이터 갱신 및 적용>
- *          1. 화면에 있는 탄환과 적의 움직임
+ *          1. 화면에 있는 탄환과 적 이동 및 제거
  *          2. 게임 종료
  */
 class MainActivity : AppCompatActivity() {
-    //MovingObject(Bullet, Enemy)를 표시할 뷰를 관리하는 리스트
-    private val bulletViews = mutableListOf<ImageView>()
-    private val enemyViews = mutableListOf<ImageView>()
-   
+    //MovingObject 대응 뷰들을 관리하는 테이블
+    private val bulletTable = mutableMapOf<Long,ImageView>()
+    private val enemyTable = mutableMapOf<Long,ImageView>()
+
     //모델의 데이터와 뷰의 위치를 주기적으로 갱신하기 위한 타이머
     private lateinit var updateTimer: Timer
 
@@ -49,7 +49,7 @@ class MainActivity : AppCompatActivity() {
     /* onCreate()에서는 화면 크기, MVC 연결 관련 변수들, 뷰로 입력을 받기 위한 listener 초기화 */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        //vlew - controller 연결됨
+        //view - controller 연결됨 (view binding)
         inView = ActivityMainBinding.inflate(layoutInflater)
         setContentView(inView.root)
 
@@ -57,7 +57,6 @@ class MainActivity : AppCompatActivity() {
         gameModel = GameModel(resources.displayMetrics.widthPixels,
             (0.7F * resources.displayMetrics.heightPixels).toInt())
 
-        //대포 회전(seekbar)과 탄환 발사(imageButton)의 listener 지정
         //대포의 회전 (seekbar.progress -> 0 ~ 100일 때 -90F ~ 90F)
         inView.rotateBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(p0: SeekBar?, p1: Int, p2: Boolean) {
@@ -67,21 +66,20 @@ class MainActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(p0: SeekBar?) {}
         })
 
-        //탄환 발사
+        //탄환 발사, 새 탄환 객체가 발생하면 바로 뷰 테이블에 새 이미지뷰와 함께 기록
         inView.fireButton.setOnClickListener {
             val bullet = gameModel.shootBullet()
-            if(bullet != null)
-                bulletViews.add(makeNewMovingView(bullet, gameModel.bulletInfo))
+            if(bullet != null) //bullet is null -> 생성된 bullet 없음
+                bulletTable[bullet.getId()] = makeNewMovingView(bullet, gameModel.bulletInfo)
         }
     }
 
     /* onResume()에서는 게임이 종료되지 않은 한, 주기적 갱신을 위한 타이머를 설정하고 뷰를 사용가능하게 바꿈 */
     override fun onResume() {
         super.onResume()
-        if(!gameEnd) { //게임이 종료되지 않았다면...
-            //모델과 뷰 자동갱신을 위한 타이머 재실행
+        if(!gameEnd) {
+            //타이머 재실행과 컨트롤러 활성화
             timerStartForPeriodicUpdate()
-            //뷰(회전, 발사 컨트롤러) 터치 활성화
             inView.rotateBar.isEnabled = true
             inView.fireButton.isEnabled = true
         }
@@ -99,21 +97,22 @@ class MainActivity : AppCompatActivity() {
 
     /**
      *                       <타이머 업데이트 (40ms 단위로 반복)>
-     *   ((Controller -> Model)) : gameModel.periodicModelUpdate
-     *      1. 모델에게 게임 내 활성화된(움직이고 있는) 적과 탄환의 위치 데이터와 적 등장을 갱신할 것을 요청
-     *   ((Controller -> View)) : totalUIUpdate(화면 접근이라 UI Thread 내부에서 동작)
-     *      2. UI 내부에 갱신된 탄환 위치, 적 위치, 충돌 적용
+     *      ((뷰와 관련 x))
+     *          1. 모델에게 게임 화면 내에 이미 있는 적과 탄환의 데이터를 갱신할 것을 요청
+     *      ((뷰와 관련 o))
+     *          2. 화면에서 벗어난 적 객체로 인해 목숨이 0이 되었다면 게임 종료 트리거 발동
+     *          3. 새로 등장할 적 개체가 있다면 모델에게 그 데이터를 받아서 뷰와 연결
+     *          4. 화면에서 벗어나거나 충돌해서 화면 내에서 사라져야 하는 뷰 삭제
+     *          5. UI 내부에 갱신된 탄환 위치, 적 위치 적용
      */
     private fun timerStartForPeriodicUpdate(){
         updateTimer = timer(period = gameModel.updatePeriod) {
-            gameModel.totalMovingUpdate() //1
-
+            gameModel.totalModelExistingDataUpdate() //1
             runOnUiThread {
-                val enemy = gameModel.newEnemy()
-                if(enemy != null)
-                    enemyViews.add(makeNewMovingView(enemy, gameModel.enemyInfo))
-
-                totalUIPeriodicUpdate() //2
+                gameEndCheckUpdate() //4
+                newEnemyUpdate() //2
+                totalUIDeletingUpdate() //3
+                totalUIMovingUpdate() //5
             }
         }
     }
@@ -122,74 +121,80 @@ class MainActivity : AppCompatActivity() {
     //함수 영역 (UI 적용 프로세스 함수)
     //
 
-    /**
-     *   <ui update 위해서 할 것>
-     *      0. 기존에 game stage 내에 존재하던 모든 view 제거
-     *      1. 게임 종료 여부 확인
-     *      2. bullet 새로 생성
-     *      3. enemy 새로 생성
-     */
-    private fun totalUIPeriodicUpdate(){
-        gameEndCheckProcess() //1
-        movingViewsDelete(gameModel.getBulletDeleteInfo(), bulletViews)
-        movingViewsDelete(gameModel.getEnemyDeleteInfo(), enemyViews)
-        movingViewsPosUpdate(gameModel.getBullets(), bulletViews) //2
-        movingViewsPosUpdate(gameModel.getEnemies(), enemyViews) //3
-    }
-
-    /* (게임 종료 여부 확인)을 위한 함수 */
-    private fun gameEndCheckProcess(){
+    /* 화면에서 벗어난 적 객체로 인해 목숨이 0이 되었다면 게임 종료 트리거 발동하는 함수 */
+    private fun gameEndCheckUpdate() {
         //life 개수를 알리는 텍스트 내용 설정 (Life : ?)
         val curLife = gameModel.getLife()
         val lifeText = "Life : $curLife"
         inView.lifeCount.text = lifeText
 
         //life 0 이하로 떨어지면 게임 완전 종료
-        if(curLife <= 0)
+        if (curLife <= 0)
             gameEnd()
     }
 
-    private fun movingViewsDelete(list: List<Int>, viewList: MutableList<ImageView>){
-        val it = list.iterator()
-        var num: Int
+    /* 새로 등장할 적 개체가 있다면 모델에게 그 데이터를 받아서 뷰와 연결하는 함수 */
+    private fun newEnemyUpdate(){
+        val enemy = gameModel.newEnemy()
+        if(enemy != null) //enemy is null -> 생성된 enemy 없음
+            enemyTable[enemy.getId()] = makeNewMovingView(enemy, gameModel.enemyInfo)
+    }
 
-        while(it.hasNext()){
-            num = it.next()
-            inView.gameStage.removeView(viewList[num])
-            viewList.removeAt(num)
+    /* 화면에서 벗어나거나 충돌해서 화면 내에서 사라져야 하는 뷰를 삭제하는 함수 */
+    private fun totalUIDeletingUpdate(){
+        eachViewDeletingUpdate(gameModel.getDeletedBulletIds(), bulletTable)
+        eachViewDeletingUpdate(gameModel.getDeletedEnemyIds(), enemyTable)
+    }
+
+    //deleted id에 해당하는 움직이는 뷰들을 삭제하는 함수
+    private fun eachViewDeletingUpdate(idList: List<Long>, viewTable: MutableMap<Long,ImageView>){
+        val idIt = idList.iterator()
+        var curId:Long
+
+        //id에 해당하는 뷰를 테이블에서 삭제
+        while(idIt.hasNext()){
+            curId = idIt.next()
+            inView.gameStage.removeView(viewTable[curId])
+            viewTable.remove(curId)
         }
     }
 
-    /* (뷰 새로 생성)을 위한 함수 */
-    private fun movingViewsPosUpdate(list: List<MovingObject>, viewList: MutableList<ImageView>){
-        val it = list.iterator()
-        val viewIt = viewList.iterator()
+    /* UI 내부에 갱신된 탄환 위치, 적 위치 적용하는 함수 */
+    private fun totalUIMovingUpdate(){
+        eachViewMovingUpdate(gameModel.getBullets(), bulletTable)
+        eachViewMovingUpdate(gameModel.getEnemies(), enemyTable)
+    }
+
+    //실제 각 MovingObject(Bullet, Enemy)를 움직이는 함수
+    private fun eachViewMovingUpdate(objectList: List<MovingObject>, viewTable: MutableMap<Long,ImageView>){
+        val objectIt = objectList.iterator()
+        val viewIt = viewTable.iterator()
 
         var curObj: MovingObject
         var curView: ImageView
 
-        //데이터 개수만큼 업데이트
-        while(it.hasNext()){
-            curObj = it.next()
-            curView = viewIt.next()
-
+        //데이터 개수만큼 업데이트 (객체와 대응하는 뷰 각각 가져와서 속성 갱신)
+        while(objectIt.hasNext()){
+            curObj = objectIt.next()
+            curView = viewIt.next().value
             curView.x = curObj.getX()
             curView.y = curObj.getY()
         }
     }
 
-    /* movingViesUpdateProcess 내부에서 실제 뷰를 추가할 때 사용하는 함수 */
+    /* 모델에서 객체가 추가된 것을 인식하고 처음 연관된 뷰를 만들 때 사용하는 함수 */
     private fun makeNewMovingView(obj: MovingObject, info: ObjectInfo): ImageView{
-        //새로운 뷰의 속성 지정 (무슨 info 받았냐에 따라 크기와 소스 이미지 달라짐
         val newView = ImageView(this)
         newView.setImageResource(info.resId)
+        newView.scaleType = ImageView.ScaleType.FIT_XY
+
+        //무슨 info 받았냐에 따라 크기와 소스 이미지 달라짐
         newView.layoutParams = FrameLayout.LayoutParams(info.width, info.height)
         newView.x = obj.getX()
         newView.y = obj.getY()
-        newView.scaleType = ImageView.ScaleType.FIT_XY
 
         inView.gameStage.addView(newView) //속성 적용이 끝났으면 화면에 추가
-        return newView
+        return newView //테이블에 추가하기 위해 반환
     }
 
     //------------------------------------------------
@@ -198,8 +203,8 @@ class MainActivity : AppCompatActivity() {
 
     /* onPause, onStop 상황이나, life -> 0이 됐을 때 게임이 중지됨 */
     private fun gameStop(){
-        updateTimer.cancel() //타이머 동작 취소
-        //사용자를 위한 컨트롤러 비활성화
+        //타이머 동작 취소와 컨트롤러 비활성화
+        updateTimer.cancel()
         inView.rotateBar.isEnabled = false
         inView.fireButton.isEnabled = false
     }

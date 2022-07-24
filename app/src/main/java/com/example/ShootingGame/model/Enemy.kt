@@ -6,10 +6,11 @@ package com.example.ShootingGame.model
  *     모든 적의 최초 위치 y값은 0이며, y 방향으로 움직인다.
  *     따라서 y 속도(velY)만을 받아와서 위치 갱신에 활용함.
  */
-class Enemy(sx: Float, vy: Float): MovingObject(sx, 0F) {
-    private val velY = vy
+class Enemy(identification: Long, sx: Float, vy: Float): MovingObject(identification, sx, 0F) {
+    private val velY = vy //y 속도
 
-    override fun locationUpdate() {
+    /* 적은 y 방향으로만 속도를 가지고 위차가 변함 */
+    override fun positionUpdate() {
         curY += velY
     }
 }

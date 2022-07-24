@@ -28,12 +28,10 @@ class Cannon {
         return degree
     }
 
-    /* x 방향 벡터 값을 얻는 함수 */
+    /* x,y 방향 벡터 값을 얻는 함수 */
     fun getVectorX(): Float {
         return xVector
     }
-
-    /* y 방향 벡터 값을 얻는 함수 */
     fun getVectorY(): Float {
         return yVector
     }
